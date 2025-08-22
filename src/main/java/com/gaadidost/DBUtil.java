@@ -4,6 +4,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.Properties;
 
 public class DBUtil {
@@ -41,7 +42,7 @@ public class DBUtil {
         }
     }
 
-    public static Connection getConnection() throws Exception {
+    public static Connection getConnection() throws SQLException {
         return DriverManager.getConnection(URL, USER, PASS);
     }
 }

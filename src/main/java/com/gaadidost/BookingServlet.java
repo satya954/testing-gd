@@ -1,45 +1,41 @@
 package com.gaadidost;
 
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.*;
+import jakarta.servlet.http.*;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
+import java.sql.*;
 
 public class BookingServlet extends HttpServlet {
-
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
 
-        String username = request.getParameter("username");
-        String serviceType = request.getParameter("serviceType");
-        String bookingDate = request.getParameter("bookingDate");
+        HttpSession session = req.getSession(false);
+        if (session == null || session.getAttribute("userId") == null) {
+            resp.sendRedirect("login.jsp");
+            return;
+        }
+
+        int userId = (int) session.getAttribute("userId");
+        String serviceType = req.getParameter("serviceType");
+        String serviceOption = req.getParameter("serviceOption");
+        String scheduledFor = req.getParameter("scheduledFor"); // yyyy-MM-ddTHH:mm
 
         try (Connection con = DBUtil.getConnection()) {
-            String sql = "INSERT INTO bookings (username, service_type, booking_date) VALUES (?, ?, ?)";
+            String sql = "INSERT INTO bookings (user_id, service_type, service_option, scheduled_for, notes) " +
+                         "VALUES (?, ?, ?, ?, ?)";
             PreparedStatement ps = con.prepareStatement(sql);
-            ps.setString(1, username);
+            ps.setInt(1, userId);
             ps.setString(2, serviceType);
-            ps.setString(3, bookingDate);
-
-	    int rows = ps.executeUpdate();
-	    if (rows > 0) {
-    		request.setAttribute("service", serviceType);
-    		request.setAttribute("date", bookingDate);
-    		request.setAttribute("message", "Booking successful for " + serviceType + "!");
-    		request.getRequestDispatcher("booking-success.jsp").forward(request, response);
-	     } else {
-    		request.setAttribute("message", "Booking failed. Please try again.");
-    		request.getRequestDispatcher("booking-failure.jsp").forward(request, response);
-	     }
-
-        } catch (Exception e) {
-            throw new ServletException("Booking failed", e);
+            ps.setString(3, serviceOption);
+            ps.setString(4, scheduledFor != null && !scheduledFor.isEmpty() ? scheduledFor.replace("T"," ") : null);
+            ps.setString(5, req.getParameter("notes"));
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new ServletException(e);
         }
+
+        resp.sendRedirect("my-bookings.jsp");
     }
 }
 
